@@ -1,0 +1,18 @@
+const express = require("express");
+const { requireAuth, allowRoles } = require("../middleware/auth");
+const controller = require("../controllers/platformController");
+const router = express.Router();
+router.get("/garages", controller.discoverGarages);
+router.get("/garages/:id", controller.getGarage);
+router.get("/garages/:garageId/reviews", controller.listReviews);
+router.use(requireAuth);
+router.post("/reviews", allowRoles("customer"), controller.createReview);
+router.put("/reviews/:id", allowRoles("customer"), controller.updateReview);
+router.delete("/reviews/:id", allowRoles("customer"), controller.deleteReview);
+router.get("/notifications", controller.listNotifications);
+router.patch("/notifications/:id/read", controller.markNotificationRead);
+router.get("/chat/:bookingId", controller.listMessages);
+router.post("/chat/:bookingId", controller.sendMessage);
+router.get("/invoices", allowRoles("customer"), controller.listInvoices);
+router.get("/invoices/:id/download", allowRoles("customer"), controller.getInvoice);
+module.exports = router;

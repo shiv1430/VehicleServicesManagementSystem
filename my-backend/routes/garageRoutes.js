@@ -1,0 +1,10 @@
+const express = require("express");
+const { requireAuth, allowRoles } = require("../middleware/auth");
+const controller = require("../controllers/garageController");
+const router = express.Router();
+router.use(requireAuth, allowRoles("garage_owner"));
+router.get("/mine", controller.listOwnedGarages);
+router.post("/", controller.createGarage);
+router.put("/:id", controller.updateGarage);
+router.post("/:id/mechanics", controller.addMechanic);
+module.exports = router;
