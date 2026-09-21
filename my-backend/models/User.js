@@ -3,30 +3,20 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        trim: true,
-        minlength: 2,
-        maxlength: 100
+        required: true
     },
     email: {
         type: String,
         required: true,
-        unique: true,
-        lowercase: true,
-        trim: true,
-        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        unique: true
     },
     mobile: {
         type: String,
-        required: true,
-        trim: true,
-        match: /^\+?[0-9\s()-]{7,20}$/
+        required: true
     },
     role: {
         type: String,
-        enum: ["customer", "mechanic", "garage_owner", "admin"],
-        default: "customer",
-        required: true
+        default: "customer"
     },
     password: {
         type: String,
