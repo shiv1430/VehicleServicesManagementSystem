@@ -30,7 +30,7 @@ const CustomerDashboard = () => {
           bookingsCount: bList.length,
           pendingCount: pending,
         });
-      } catch (err) {
+      } catch {
         // Silently fail stats to keep dashboard functional
       } finally {
         setLoading(false);

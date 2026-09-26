@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import AlertBanner from "../components/AlertBanner";
 
 const Garages = () => {
   const [garages, setGarages] = useState([]);
@@ -88,7 +89,7 @@ const Garages = () => {
           </div>
 
           <div className="search-buttons">
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary" disabled={loading}>
               Search
             </button>
             {(search || serviceFilter) && (
@@ -100,16 +101,18 @@ const Garages = () => {
         </form>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      <AlertBanner type="error" message={error} onClose={() => setError("")} />
 
       {/* Garages List */}
       {loading ? (
-        <div className="loading-state">Finding available garages...</div>
+        <div className="loading-state">
+          <span className="spinner spinner-primary"></span> Finding available garages...
+        </div>
       ) : garages.length === 0 ? (
         <div className="card empty-state">
           <div className="empty-icon">🔍</div>
           <h3>No Garages Found</h3>
-          <p>Try searching with a different keyword or resetting your filters.</p>
+          <p>No service stations matched your search query. Try searching with different keywords.</p>
           <button onClick={handleResetSearch} className="btn-secondary">
             View All Garages
           </button>
@@ -133,7 +136,6 @@ const Garages = () => {
                 {g.phone && <p className="garage-phone">📞 {g.phone}</p>}
                 {g.description && <p className="garage-desc">{g.description}</p>}
 
-                {/* Mechanics count badge */}
                 {g.mechanics && g.mechanics.length > 0 && (
                   <div className="garage-meta">
                     <span className="meta-item">
@@ -172,7 +174,7 @@ const Garages = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted">Standard vehicle repair and inspection available.</p>
+                  <p className="text-muted">Standard repair and diagnostic services offered.</p>
                 )}
 
                 <div className="garage-book-footer">

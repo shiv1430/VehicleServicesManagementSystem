@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import AlertBanner from "../components/AlertBanner";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ const Login = () => {
       const user = await login(email.trim(), password);
 
       // Redirect according to user role
-      if (user.role === "mechanic") {
+      if (user.role === "mechanic" || user.role === "garage_owner") {
         navigate("/mechanic-dashboard");
       } else {
         navigate("/customer-dashboard");
@@ -33,7 +34,7 @@ const Login = () => {
     } catch (err) {
       const msg =
         err.response?.data?.message ||
-        "Login failed. Please check your credentials and try again.";
+        "Invalid email or password. Please verify and try again.";
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -48,7 +49,7 @@ const Login = () => {
           <p>Login to your SmartAuto account</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        <AlertBanner type="error" message={error} onClose={() => setError("")} />
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
@@ -77,6 +78,7 @@ const Login = () => {
           </div>
 
           <button type="submit" className="btn-primary" disabled={submitting}>
+            {submitting && <span className="spinner"></span>}
             {submitting ? "Logging in..." : "Login"}
           </button>
         </form>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import AlertBanner from "../components/AlertBanner";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -48,7 +49,7 @@ const Register = () => {
       });
 
       // Redirect to appropriate dashboard
-      if (user.role === "mechanic") {
+      if (user.role === "mechanic" || user.role === "garage_owner") {
         navigate("/mechanic-dashboard");
       } else {
         navigate("/customer-dashboard");
@@ -56,7 +57,7 @@ const Register = () => {
     } catch (err) {
       const msg =
         err.response?.data?.message ||
-        "Registration failed. Please check your information and try again.";
+        "Registration failed. An account with this email may already exist.";
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -71,7 +72,7 @@ const Register = () => {
           <p>Join SmartAuto Service Platform</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        <AlertBanner type="error" message={error} onClose={() => setError("")} />
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
@@ -142,6 +143,7 @@ const Register = () => {
           </div>
 
           <button type="submit" className="btn-primary" disabled={submitting}>
+            {submitting && <span className="spinner"></span>}
             {submitting ? "Creating Account..." : "Register"}
           </button>
         </form>

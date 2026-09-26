@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import AlertBanner from "../components/AlertBanner";
 
 const MechanicDashboard = () => {
   const { user } = useAuth();
@@ -29,6 +30,14 @@ const MechanicDashboard = () => {
     fetchBookings();
   }, []);
 
+  // Auto-dismiss success
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   // Update booking status (pending -> confirmed -> completed)
   const handleUpdateStatus = async (bookingId, newStatus) => {
     try {
@@ -43,8 +52,8 @@ const MechanicDashboard = () => {
       const updated = res.data;
       setSuccess(
         newStatus === "confirmed"
-          ? `Booking #${bookingId.slice(-6)} confirmed successfully!`
-          : `Service for Booking #${bookingId.slice(-6)} marked as completed!`
+          ? "Booking confirmed successfully. Assigned to your active queue."
+          : "Service marked as completed. Customer invoice has been generated."
       );
 
       // Update local state with updated booking
@@ -95,7 +104,7 @@ const MechanicDashboard = () => {
           </p>
         </div>
         <button onClick={fetchBookings} className="btn-secondary" disabled={loading}>
-          🔄 Refresh Bookings
+          {loading ? <span className="spinner spinner-primary"></span> : "🔄"} Refresh Queue
         </button>
       </div>
 
@@ -139,8 +148,8 @@ const MechanicDashboard = () => {
       </div>
 
       {/* Alerts */}
-      {success && <div className="alert alert-success">{success}</div>}
-      {error && <div className="alert alert-error">{error}</div>}
+      <AlertBanner type="success" message={success} onClose={() => setSuccess("")} />
+      <AlertBanner type="error" message={error} onClose={() => setError("")} />
 
       {/* Filter Tabs */}
       <div className="tab-bar">
@@ -148,7 +157,7 @@ const MechanicDashboard = () => {
           className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
           onClick={() => setActiveTab("all")}
         >
-          All Bookings ({totalCount})
+          All Requests ({totalCount})
         </button>
         <button
           className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
@@ -172,14 +181,16 @@ const MechanicDashboard = () => {
 
       {/* Booking List */}
       {loading ? (
-        <div className="loading-state">Loading job queue...</div>
+        <div className="loading-state">
+          <span className="spinner spinner-primary"></span> Loading job queue...
+        </div>
       ) : filteredBookings.length === 0 ? (
         <div className="card empty-state">
           <div className="empty-icon">🔧</div>
-          <h3>No Bookings in this Category</h3>
+          <h3>No service requests in this category</h3>
           <p>
             {activeTab === "pending"
-              ? "No pending service requests require confirmation right now."
+              ? "No pending service requests need acceptance right now."
               : activeTab === "confirmed"
               ? "No jobs are currently in-progress."
               : activeTab === "completed"
@@ -267,6 +278,7 @@ const MechanicDashboard = () => {
                     className="btn-primary"
                     disabled={updatingId === b._id}
                   >
+                    {updatingId === b._id && <span className="spinner"></span>}
                     {updatingId === b._id ? "Confirming..." : "✓ Accept & Confirm Booking"}
                   </button>
                 )}
@@ -277,6 +289,7 @@ const MechanicDashboard = () => {
                     className="btn-success"
                     disabled={updatingId === b._id}
                   >
+                    {updatingId === b._id && <span className="spinner"></span>}
                     {updatingId === b._id ? "Completing..." : "✓ Mark Service as Completed"}
                   </button>
                 )}

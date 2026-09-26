@@ -1,9 +1,10 @@
-import React from "react";
-import { Link, useNavigate, Outlet } from "react-router-dom";
+import React, { useState } from "react";
+import { NavLink, Link, useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const MainLayout = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -11,46 +12,83 @@ const MainLayout = () => {
     navigate("/login");
   };
 
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="app-container">
       <header className="navbar">
         <div className="nav-brand">
-          <Link to="/" className="brand-logo">
+          <Link to="/" className="brand-logo" onClick={closeMobileMenu}>
             <span className="brand-icon">🚗</span>
             <span className="brand-text">SmartAuto Service</span>
           </Link>
         </div>
 
-        <nav className="nav-links">
+        {/* Mobile toggle button */}
+        <button
+          className="mobile-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle navigation"
+        >
+          {mobileMenuOpen ? "✕" : "☰"}
+        </button>
+
+        <nav className={`nav-links ${mobileMenuOpen ? "nav-links-open" : ""}`}>
           {isAuthenticated ? (
             <>
               {/* Customer Navigation */}
               {user?.role === "customer" && (
                 <>
-                  <Link to="/customer-dashboard" className="nav-link">
+                  <NavLink
+                    to="/customer-dashboard"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
                     Dashboard
-                  </Link>
-                  <Link to="/vehicles" className="nav-link">
+                  </NavLink>
+                  <NavLink
+                    to="/vehicles"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
                     My Vehicles
-                  </Link>
-                  <Link to="/garages" className="nav-link">
+                  </NavLink>
+                  <NavLink
+                    to="/garages"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
                     Find Garages
-                  </Link>
-                  <Link to="/bookings" className="nav-link">
+                  </NavLink>
+                  <NavLink
+                    to="/bookings"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
                     My Bookings
-                  </Link>
+                  </NavLink>
                 </>
               )}
 
               {/* Mechanic Navigation */}
               {(user?.role === "mechanic" || user?.role === "garage_owner") && (
                 <>
-                  <Link to="/mechanic-dashboard" className="nav-link">
+                  <NavLink
+                    to="/mechanic-dashboard"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
                     Mechanic Dashboard
-                  </Link>
-                  <Link to="/mechanic-bookings" className="nav-link">
+                  </NavLink>
+                  <NavLink
+                    to="/mechanic-bookings"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
                     Service Requests
-                  </Link>
+                  </NavLink>
                 </>
               )}
 
@@ -66,10 +104,10 @@ const MainLayout = () => {
             </>
           ) : (
             <div className="auth-links">
-              <Link to="/login" className="nav-link">
+              <NavLink to="/login" className="nav-link" onClick={closeMobileMenu}>
                 Login
-              </Link>
-              <Link to="/register" className="btn-primary-sm">
+              </NavLink>
+              <Link to="/register" className="btn-primary-sm" onClick={closeMobileMenu}>
                 Register
               </Link>
             </div>

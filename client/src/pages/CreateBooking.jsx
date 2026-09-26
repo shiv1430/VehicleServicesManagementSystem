@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import api from "../services/api";
+import AlertBanner from "../components/AlertBanner";
 
 const CreateBooking = () => {
   const [searchParams] = useSearchParams();
@@ -47,13 +48,12 @@ const CreateBooking = () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(10, 0, 0, 0);
-        // Format to YYYY-MM-DDTHH:MM for datetime-local input
         const localIso = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000)
           .toISOString()
           .slice(0, 16);
         setAppointmentAt(localIso);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load booking dependencies.");
+        setError(err.response?.data?.message || "Failed to load booking details.");
       } finally {
         setLoading(false);
       }
@@ -67,7 +67,6 @@ const CreateBooking = () => {
 
   useEffect(() => {
     if (currentGarage) {
-      // If preSelectedServiceName is offered by this garage, keep it, else default to first
       const hasPreSelected = currentGarage.services?.some((s) => s.name === preSelectedServiceName);
       if (hasPreSelected) {
         setSelectedService(preSelectedServiceName);
@@ -77,7 +76,6 @@ const CreateBooking = () => {
         setSelectedService("");
       }
 
-      // Reset mechanic
       setSelectedMechanic("");
     }
   }, [selectedGarage, currentGarage, preSelectedServiceName]);
@@ -87,7 +85,7 @@ const CreateBooking = () => {
     setError("");
 
     if (!selectedVehicle) {
-      setError("Please select one of your vehicles.");
+      setError("Please select one of your registered vehicles.");
       return;
     }
 
@@ -102,7 +100,7 @@ const CreateBooking = () => {
     }
 
     if (!appointmentAt) {
-      setError("Please pick an appointment date and time.");
+      setError("Please choose an appointment date and time.");
       return;
     }
 
@@ -125,7 +123,7 @@ const CreateBooking = () => {
 
       await api.post("/bookings", payload);
 
-      // Navigate to bookings list
+      // Navigate to bookings list with success state
       navigate("/bookings", { state: { bookingCreated: true } });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create booking.");
@@ -135,7 +133,11 @@ const CreateBooking = () => {
   };
 
   if (loading) {
-    return <div className="loading-state">Loading booking options...</div>;
+    return (
+      <div className="loading-state">
+        <span className="spinner spinner-primary"></span> Loading booking options...
+      </div>
+    );
   }
 
   // If customer has no vehicles yet, guide them to add one first
@@ -163,7 +165,7 @@ const CreateBooking = () => {
         </div>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      <AlertBanner type="error" message={error} onClose={() => setError("")} />
 
       <div className="card booking-form-card">
         <form onSubmit={handleSubmit} className="booking-form">
@@ -254,11 +256,11 @@ const CreateBooking = () => {
 
           {/* Step 6: Customer Notes */}
           <div className="form-group">
-            <label htmlFor="notes">Notes / Specific Concerns</label>
+            <label htmlFor="notes">Notes / Symptoms Description</label>
             <textarea
               id="notes"
               rows={3}
-              placeholder="e.g. Brake pedal feels spongy, squeaking noise while turning, request general wash..."
+              placeholder="e.g. Brake pedal feels soft, AC cooling is low, general vehicle inspection required..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -266,6 +268,7 @@ const CreateBooking = () => {
 
           <div className="form-actions">
             <button type="submit" className="btn-primary" disabled={submitting}>
+              {submitting && <span className="spinner"></span>}
               {submitting ? "Booking Appointment..." : "Confirm & Book Appointment"}
             </button>
             <button

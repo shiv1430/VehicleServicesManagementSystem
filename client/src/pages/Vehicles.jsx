@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../services/api";
+import AlertBanner from "../components/AlertBanner";
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -18,6 +19,7 @@ const Vehicles = () => {
     manufacturingYear: new Date().getFullYear(),
   });
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   // Fetch customer's vehicles
   const fetchVehicles = async () => {
@@ -36,6 +38,14 @@ const Vehicles = () => {
   useEffect(() => {
     fetchVehicles();
   }, []);
+
+  // Auto-dismiss success alert
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   const handleChange = (e) => {
     setFormData({
@@ -100,17 +110,17 @@ const Vehicles = () => {
 
       if (editingId) {
         await api.put(`/vehicles/${editingId}`, payload);
-        setSuccess("Vehicle updated successfully!");
+        setSuccess("Vehicle updated successfully.");
       } else {
         await api.post("/vehicles", payload);
-        setSuccess("Vehicle registered successfully!");
+        setSuccess("Vehicle added successfully.");
       }
 
       setShowForm(false);
       setEditingId(null);
       fetchVehicles();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to save vehicle.");
+      setError(err.response?.data?.message || "Failed to save vehicle details.");
     } finally {
       setSubmitting(false);
     }
@@ -121,6 +131,7 @@ const Vehicles = () => {
     if (!window.confirm("Are you sure you want to remove this vehicle?")) return;
 
     try {
+      setDeletingId(id);
       setError("");
       setSuccess("");
       await api.delete(`/vehicles/${id}`);
@@ -128,6 +139,8 @@ const Vehicles = () => {
       fetchVehicles();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete vehicle.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -145,8 +158,8 @@ const Vehicles = () => {
         )}
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+      <AlertBanner type="error" message={error} onClose={() => setError("")} />
+      <AlertBanner type="success" message={success} onClose={() => setSuccess("")} />
 
       {/* Add / Edit Form Card */}
       {showForm && (
@@ -174,7 +187,7 @@ const Vehicles = () => {
                   id="brand"
                   name="brand"
                   type="text"
-                  placeholder="e.g. Hyundai, Honda, Maruti"
+                  placeholder="e.g. Hyundai, Honda, Tata"
                   value={formData.brand}
                   onChange={handleChange}
                   required
@@ -187,7 +200,7 @@ const Vehicles = () => {
                   id="model"
                   name="model"
                   type="text"
-                  placeholder="e.g. i20, City, Swift"
+                  placeholder="e.g. i20, City, Nexon"
                   value={formData.model}
                   onChange={handleChange}
                   required
@@ -227,6 +240,7 @@ const Vehicles = () => {
 
             <div className="form-actions">
               <button type="submit" className="btn-primary" disabled={submitting}>
+                {submitting && <span className="spinner"></span>}
                 {submitting ? "Saving..." : editingId ? "Update Vehicle" : "Add Vehicle"}
               </button>
               <button type="button" onClick={handleCancel} className="btn-secondary" disabled={submitting}>
@@ -239,15 +253,17 @@ const Vehicles = () => {
 
       {/* Vehicle List */}
       {loading ? (
-        <div className="loading-state">Loading your vehicles...</div>
+        <div className="loading-state">
+          <span className="spinner spinner-primary"></span> Loading your vehicles...
+        </div>
       ) : vehicles.length === 0 ? (
         <div className="card empty-state">
           <div className="empty-icon">🚗</div>
-          <h3>No Vehicles Found</h3>
-          <p>You haven't added any vehicles yet. Add your vehicle to book service appointments.</p>
+          <h3>You haven't added any vehicles yet</h3>
+          <p>Register your vehicle to schedule service appointments and track maintenance history.</p>
           {!showForm && (
             <button onClick={handleOpenAdd} className="btn-primary">
-              Add Your First Vehicle
+              + Register Your First Vehicle
             </button>
           )}
         </div>
@@ -279,11 +295,19 @@ const Vehicles = () => {
               </div>
 
               <div className="vehicle-card-actions">
-                <button onClick={() => handleOpenEdit(v)} className="btn-outline-sm">
+                <button
+                  onClick={() => handleOpenEdit(v)}
+                  className="btn-outline-sm"
+                  disabled={deletingId === v._id}
+                >
                   Edit
                 </button>
-                <button onClick={() => handleDelete(v._id)} className="btn-danger-sm">
-                  Delete
+                <button
+                  onClick={() => handleDelete(v._id)}
+                  className="btn-danger-sm"
+                  disabled={deletingId === v._id}
+                >
+                  {deletingId === v._id ? "Removing..." : "Delete"}
                 </button>
               </div>
             </div>
