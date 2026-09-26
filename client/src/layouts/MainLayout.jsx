@@ -24,6 +24,7 @@ const MainLayout = () => {
         <nav className="nav-links">
           {isAuthenticated ? (
             <>
+              {/* Customer Navigation */}
               {user?.role === "customer" && (
                 <>
                   <Link to="/customer-dashboard" className="nav-link">
@@ -41,10 +42,14 @@ const MainLayout = () => {
                 </>
               )}
 
-              {user?.role === "mechanic" && (
+              {/* Mechanic Navigation */}
+              {(user?.role === "mechanic" || user?.role === "garage_owner") && (
                 <>
                   <Link to="/mechanic-dashboard" className="nav-link">
                     Mechanic Dashboard
+                  </Link>
+                  <Link to="/mechanic-bookings" className="nav-link">
+                    Service Requests
                   </Link>
                 </>
               )}

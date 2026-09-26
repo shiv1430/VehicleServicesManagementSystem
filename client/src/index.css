@@ -979,6 +979,83 @@ body {
   background-color: #ffffff;
 }
 
+/* Tab Bar */
+.tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.25rem;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius) var(--radius) 0 0;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--primary);
+  background-color: #f1f5f9;
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom: 3px solid var(--primary);
+  background-color: #eff6ff;
+}
+
+/* Mechanic Action Bar */
+.mechanic-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: #ffffff;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #15803d;
+}
+
+.btn-success:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.completed-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--success);
+  background-color: #f0fdf4;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid #bbf7d0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .navbar {

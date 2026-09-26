@@ -16,7 +16,12 @@ const listBookings = async (req, res) => {
             const garageIds = garages.map(garage => garage._id);
             filter.garage = { $in: garageIds };
         } else if (req.user.role === "mechanic") {
-            filter.mechanic = req.user._id;
+            const garages = await Garage.find({ mechanics: req.user._id }).select("_id");
+            const garageIds = garages.map(garage => garage._id);
+            filter.$or = [
+                { mechanic: req.user._id },
+                { garage: { $in: garageIds } }
+            ];
         }
 
         const bookings = await Booking
@@ -119,7 +124,16 @@ const updateBooking = async (req, res) => {
 
         // Check if user has permission to update this booking
         const isCustomer = booking.customer.toString() === req.user._id.toString();
-        const isMechanic = booking.mechanic && booking.mechanic.toString() === req.user._id.toString();
+        let isMechanic = booking.mechanic && booking.mechanic.toString() === req.user._id.toString();
+        if (!isMechanic && req.user.role === "mechanic") {
+            const garage = await Garage.findOne({ _id: booking.garage, mechanics: req.user._id });
+            if (garage) {
+                isMechanic = true;
+                if (!booking.mechanic) {
+                    booking.mechanic = req.user._id;
+                }
+            }
+        }
         const isAdmin = req.user.role === "admin";
 
         let isGarageOwner = false;
