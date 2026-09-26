@@ -29,14 +29,14 @@ const MainLayout = () => {
                   <Link to="/customer-dashboard" className="nav-link">
                     Dashboard
                   </Link>
-                  <Link to="/customer-dashboard#vehicles" className="nav-link">
-                    Vehicles
+                  <Link to="/vehicles" className="nav-link">
+                    My Vehicles
                   </Link>
-                  <Link to="/customer-dashboard#garages" className="nav-link">
-                    Garages
+                  <Link to="/garages" className="nav-link">
+                    Find Garages
                   </Link>
-                  <Link to="/customer-dashboard#bookings" className="nav-link">
-                    Bookings
+                  <Link to="/bookings" className="nav-link">
+                    My Bookings
                   </Link>
                 </>
               )}

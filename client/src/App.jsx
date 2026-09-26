@@ -7,6 +7,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import MechanicDashboard from "./pages/MechanicDashboard";
+import Vehicles from "./pages/Vehicles";
+import Garages from "./pages/Garages";
+import CreateBooking from "./pages/CreateBooking";
+import Bookings from "./pages/Bookings";
 
 // Root redirect based on auth status
 const HomeRedirect = () => {
@@ -46,6 +50,42 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["customer"]}>
                   <CustomerDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/vehicles"
+              element={
+                <ProtectedRoute allowedRoles={["customer"]}>
+                  <Vehicles />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/garages"
+              element={
+                <ProtectedRoute allowedRoles={["customer"]}>
+                  <Garages />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/create-booking"
+              element={
+                <ProtectedRoute allowedRoles={["customer"]}>
+                  <CreateBooking />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute allowedRoles={["customer"]}>
+                  <Bookings />
                 </ProtectedRoute>
               }
             />
