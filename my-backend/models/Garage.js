@@ -10,11 +10,13 @@ const serviceSchema = new mongoose.Schema({
 const garageSchema = new mongoose.Schema({
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     name: { type: String, required: true },
+    referenceCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
     address: { type: String, required: true },
     phone: String,
     description: String,
     services: [serviceSchema],
     mechanics: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    leadMechanic: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     rating: { type: Number, default: 0 },
     verified: { type: Boolean, default: false }
 }, { timestamps: true });

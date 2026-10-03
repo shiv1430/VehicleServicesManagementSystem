@@ -8,6 +8,7 @@ const vehicleRoutes = require("./routes/vehicleRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const platformRoutes = require("./routes/platformRoutes");
 const garageRoutes = require("./routes/garageRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/vehicles", vehicleRoutes);
 app.use("/bookings", bookingRoutes);
 app.use("/api", platformRoutes);
 app.use("/garages", garageRoutes);
+app.use("/tasks", taskRoutes);
 
 // Simple test route
 app.get("/", (req, res) => {

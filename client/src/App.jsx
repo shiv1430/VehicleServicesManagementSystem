@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CustomerDashboard from "./pages/CustomerDashboard";
+import GarageOwnerDashboard from "./pages/GarageOwnerDashboard";
 import MechanicDashboard from "./pages/MechanicDashboard";
 import MechanicBookings from "./pages/MechanicBookings";
 import Vehicles from "./pages/Vehicles";
@@ -25,7 +26,11 @@ const HomeRedirect = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.role === "mechanic" || user?.role === "garage_owner") {
+  if (user?.role === "garage_owner") {
+    return <Navigate to="/owner-dashboard" replace />;
+  }
+
+  if (user?.role === "mechanic") {
     return <Navigate to="/mechanic-dashboard" replace />;
   }
 
@@ -91,11 +96,21 @@ function App() {
               }
             />
 
+            {/* Garage Owner Route */}
+            <Route
+              path="/owner-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["garage_owner"]}>
+                  <GarageOwnerDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Mechanic Routes */}
             <Route
               path="/mechanic-dashboard"
               element={
-                <ProtectedRoute allowedRoles={["mechanic", "garage_owner"]}>
+                <ProtectedRoute allowedRoles={["mechanic"]}>
                   <MechanicDashboard />
                 </ProtectedRoute>
               }
@@ -104,7 +119,7 @@ function App() {
             <Route
               path="/mechanic-bookings"
               element={
-                <ProtectedRoute allowedRoles={["mechanic", "garage_owner"]}>
+                <ProtectedRoute allowedRoles={["mechanic"]}>
                   <MechanicBookings />
                 </ProtectedRoute>
               }

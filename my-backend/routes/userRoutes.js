@@ -7,7 +7,9 @@ const {
     loginUser,
     getUsers,
     updateUser,
-    deleteUser
+    deleteUser,
+    getMechanicProfile,
+    updateMechanicSkills
 } = require("../controllers/userController");
 
 // Register a new user
@@ -15,6 +17,10 @@ router.post("/register", registerUser);
 
 // Login a user
 router.post("/login", loginUser);
+
+// Mechanic profile & skills (Self)
+router.get("/mechanic/profile", requireAuth, allowRoles("mechanic"), getMechanicProfile);
+router.put("/mechanic/skills", requireAuth, allowRoles("mechanic"), updateMechanicSkills);
 
 // Get all users only for admin
 router.get("/", requireAuth, allowRoles("admin"), getUsers);
