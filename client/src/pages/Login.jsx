@@ -26,7 +26,9 @@ const Login = () => {
       const user = await login(email.trim(), password);
 
       // Redirect according to user role
-      if (user.role === "mechanic" || user.role === "garage_owner") {
+      if (user.role === "garage_owner") {
+        navigate("/owner-dashboard");
+      } else if (user.role === "mechanic") {
         navigate("/mechanic-dashboard");
       } else {
         navigate("/customer-dashboard");

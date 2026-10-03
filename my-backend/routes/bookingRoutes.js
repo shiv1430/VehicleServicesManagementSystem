@@ -4,6 +4,8 @@ const { requireAuth } = require("../middleware/auth");
 const {
     listBookings,
     createBooking,
+    assignMechanic,
+    updateAppointment,
     updateBooking
 } = require("../controllers/bookingController");
 
@@ -12,6 +14,8 @@ router.use(requireAuth);
 
 router.get("/", listBookings);
 router.post("/", createBooking);
+router.patch("/:id/assign", assignMechanic);
+router.patch("/:id/appointment", updateAppointment);
 router.patch("/:id", updateBooking);
 
 module.exports = router;

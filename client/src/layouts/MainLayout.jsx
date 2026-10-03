@@ -72,22 +72,28 @@ const MainLayout = () => {
                 </>
               )}
 
+              {/* Garage Owner Navigation */}
+              {user?.role === "garage_owner" && (
+                <>
+                  <NavLink
+                    to="/owner-dashboard"
+                    className="nav-link"
+                    onClick={closeMobileMenu}
+                  >
+                    Garage Management
+                  </NavLink>
+                </>
+              )}
+
               {/* Mechanic Navigation */}
-              {(user?.role === "mechanic" || user?.role === "garage_owner") && (
+              {user?.role === "mechanic" && (
                 <>
                   <NavLink
                     to="/mechanic-dashboard"
                     className="nav-link"
                     onClick={closeMobileMenu}
                   >
-                    Mechanic Dashboard
-                  </NavLink>
-                  <NavLink
-                    to="/mechanic-bookings"
-                    className="nav-link"
-                    onClick={closeMobileMenu}
-                  >
-                    Service Requests
+                    Mechanic Station
                   </NavLink>
                 </>
               )}

@@ -1,8 +1,27 @@
+const crypto = require("crypto");
 const Booking = require("../models/Booking");
 const Vehicle = require("../models/Vehicle");
 const Garage = require("../models/Garage");
 const Invoice = require("../models/Invoice");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
+
+// Helper to generate a unique invoice number
+const generateUniqueInvoiceNumber = async () => {
+    let num = "";
+    let isUnique = false;
+    let attempts = 0;
+    const year = new Date().getFullYear();
+    while (!isUnique && attempts < 10) {
+        attempts++;
+        num = `INV-${year}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+        const existing = await Invoice.findOne({ invoiceNumber: num });
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+    return num;
+};
 
 // Get bookings based on the logged-in user's role
 const listBookings = async (req, res) => {
@@ -27,12 +46,14 @@ const listBookings = async (req, res) => {
         const bookings = await Booking
             .find(filter)
             .sort({ appointmentAt: 1 })
-            .populate("vehicle garage mechanic customer", "name email mobile brand model vehicleNumber address");
+            .populate("vehicle customer", "name email mobile brand model vehicleNumber fuelType address")
+            .populate("garage", "name address phone referenceCode leadMechanic")
+            .populate("mechanic", "name email mobile skills");
 
         return res.json(bookings);
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error while getting bookings" });
+        return res.status(500).json({ message: "Server error while getting bookings: " + error.message });
     }
 };
 
@@ -81,26 +102,44 @@ const createBooking = async (req, res) => {
             return res.status(400).json({ message: "This service is not offered by this garage" });
         }
 
+        // If mechanic specified, verify membership
+        let assignedMechanic = null;
+        if (mechanicId) {
+            const isMember = garage.mechanics.some(m => m.toString() === mechanicId.toString());
+            if (isMember) {
+                assignedMechanic = mechanicId;
+            }
+        }
+
         // Create booking
         const booking = new Booking({
             customer: req.user._id,
             vehicle: vehicleId,
             garage: garageId,
-            mechanic: mechanicId,
+            mechanic: assignedMechanic,
             service: {
                 name: selectedService.name,
                 price: selectedService.price
             },
             appointmentAt: appointmentDate,
-            notes: notes,
+            notes: notes ? notes.trim() : undefined,
             status: "pending"
         });
 
         const savedBooking = await booking.save();
-        
-        // Get the booking with populated fields
+
+        // Notify garage owner
+        await Notification.create({
+            recipient: garage.owner,
+            type: "booking",
+            booking: savedBooking._id,
+            message: `New booking received for ${vehicle.brand} ${vehicle.model} (${selectedService.name})`
+        });
+
         const result = await Booking.findById(savedBooking._id)
-            .populate("vehicle garage mechanic customer", "name email mobile brand model vehicleNumber address");
+            .populate("vehicle customer", "name email mobile brand model vehicleNumber address")
+            .populate("garage", "name address phone referenceCode")
+            .populate("mechanic", "name email mobile skills");
 
         return res.status(201).json(result);
 
@@ -108,12 +147,132 @@ const createBooking = async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({ message: "That appointment slot is already booked" });
         }
-
-        return res.status(500).json({ message: "Server error while creating booking" });
+        return res.status(500).json({ message: "Server error while creating booking: " + error.message });
     }
 };
 
-// Update booking status or appointment details
+// Assign a mechanic to a booking (Garage Owner or Lead Mechanic only)
+const assignMechanic = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+
+        const garage = await Garage.findById(booking.garage);
+        if (!garage) {
+            return res.status(404).json({ message: "Garage not found" });
+        }
+
+        // Authorization check: Must be garage owner or designated lead mechanic
+        const isOwner = garage.owner.toString() === req.user._id.toString();
+        const isLead = garage.leadMechanic && garage.leadMechanic.toString() === req.user._id.toString();
+
+        if (!isOwner && !isLead && req.user.role !== "admin") {
+            return res.status(403).json({ message: "Only the garage owner or lead mechanic can assign a mechanic" });
+        }
+
+        const mechanicId = req.body.mechanicId;
+        if (!mechanicId) {
+            return res.status(400).json({ message: "Mechanic ID is required for assignment" });
+        }
+
+        // Verify mechanic exists, has mechanic role, and belongs to this garage
+        const mechanic = await User.findOne({ _id: mechanicId, role: "mechanic" });
+        if (!mechanic) {
+            return res.status(400).json({ message: "Valid mechanic user required" });
+        }
+
+        const isMember = garage.mechanics.some(m => m.toString() === mechanicId.toString());
+        if (!isMember) {
+            return res.status(400).json({ message: "Selected mechanic is not an active member of this garage" });
+        }
+
+        booking.mechanic = mechanic._id;
+        if (booking.status === "pending") {
+            booking.status = "confirmed";
+        }
+        await booking.save();
+
+        // Notify assigned mechanic
+        await Notification.create({
+            recipient: mechanic._id,
+            type: "booking",
+            booking: booking._id,
+            message: `You have been assigned to service booking #${booking._id} at ${garage.name}`
+        });
+
+        // Notify customer
+        await Notification.create({
+            recipient: booking.customer,
+            type: "booking",
+            booking: booking._id,
+            message: `Mechanic ${mechanic.name} has been assigned to your vehicle service booking.`
+        });
+
+        const result = await Booking.findById(booking._id)
+            .populate("vehicle customer", "name email mobile brand model vehicleNumber address")
+            .populate("garage", "name address phone referenceCode")
+            .populate("mechanic", "name email mobile skills");
+
+        return res.json(result);
+
+    } catch (error) {
+        return res.status(500).json({ message: "Server error while assigning mechanic: " + error.message });
+    }
+};
+
+// Update appointment date/time
+const updateAppointment = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+
+        const garage = await Garage.findById(booking.garage);
+        const isOwner = garage && garage.owner.toString() === req.user._id.toString();
+        const isAssigned = booking.mechanic && booking.mechanic.toString() === req.user._id.toString();
+        const isLead = garage && garage.leadMechanic && garage.leadMechanic.toString() === req.user._id.toString();
+
+        if (!isOwner && !isAssigned && !isLead && req.user.role !== "admin") {
+            return res.status(403).json({ message: "You are not authorized to reschedule this appointment" });
+        }
+
+        const appointmentAt = req.body.appointmentAt;
+        if (!appointmentAt) {
+            return res.status(400).json({ message: "New appointment date/time is required" });
+        }
+
+        const newDate = new Date(appointmentAt);
+        if (isNaN(newDate.getTime())) {
+            return res.status(400).json({ message: "Invalid date format" });
+        }
+
+        booking.appointmentAt = newDate;
+        await booking.save();
+
+        // Notify customer
+        await Notification.create({
+            recipient: booking.customer,
+            type: "booking",
+            booking: booking._id,
+            message: `Your appointment time has been rescheduled to ${newDate.toLocaleString()}`
+        });
+
+        const result = await Booking.findById(booking._id)
+            .populate("vehicle customer", "name email mobile brand model vehicleNumber address")
+            .populate("garage", "name address phone referenceCode")
+            .populate("mechanic", "name email mobile skills");
+
+        return res.json(result);
+
+    } catch (error) {
+        return res.status(500).json({ message: "Server error while updating appointment: " + error.message });
+    }
+};
+
+// Update booking status or general details
 const updateBooking = async (req, res) => {
     try {
         const booking = await Booking.findById(req.params.id);
@@ -143,31 +302,44 @@ const updateBooking = async (req, res) => {
         }
 
         const canUpdate = isCustomer || isMechanic || isGarageOwner || isAdmin;
-
         if (!canUpdate) {
             return res.status(403).json({ message: "You cannot update this booking" });
+        }
+
+        // Customer cannot complete booking directly
+        if (isCustomer && !isAdmin && req.body.status === "completed") {
+            return res.status(403).json({ message: "Customer cannot mark booking as completed" });
         }
 
         // Update fields if provided
         if (req.body.status) {
             booking.status = req.body.status;
+            if (req.body.status === "completed") {
+                booking.completedAt = new Date();
+            }
+        }
+
+        if (req.body.rejectionReason) {
+            booking.notes = (booking.notes ? booking.notes + " | Rejection: " : "Rejection: ") + req.body.rejectionReason;
         }
 
         if (req.body.appointmentAt) {
             booking.appointmentAt = req.body.appointmentAt;
         }
 
-        if (req.body.notes) {
+        if (req.body.notes && !req.body.rejectionReason) {
             booking.notes = req.body.notes;
         }
 
         const updatedBooking = await booking.save();
 
-        // Create notification when booking is confirmed or completed
-        if (req.body.status === "confirmed" || req.body.status === "completed") {
+        // Create notification when booking status progresses
+        if (req.body.status === "confirmed" || req.body.status === "accepted" || req.body.status === "completed" || req.body.status === "rejected") {
             const message = req.body.status === "completed"
-                ? "Your service is completed"
-                : "Your booking has been confirmed";
+                ? "Your service is completed and invoice is available"
+                : req.body.status === "rejected"
+                ? `Booking rejected: ${req.body.rejectionReason || "Unavailable"}`
+                : "Your booking has been accepted and confirmed";
 
             await Notification.create({
                 recipient: booking.customer,
@@ -177,36 +349,66 @@ const updateBooking = async (req, res) => {
             });
         }
 
-        // Create invoice when booking is completed
+        // Backward compatibility: If marked completed directly without a prior bill,
+        // create a standardized finalized invoice
         if (req.body.status === "completed") {
-            const invoice = await Invoice.findOne({ booking: booking._id });
-            
+            let invoice = await Invoice.findOne({ booking: booking._id });
+
             if (!invoice) {
+                const invoiceNumber = await generateUniqueInvoiceNumber();
+                const servicePrice = booking.service?.price || 0;
+
                 await Invoice.create({
+                    invoiceNumber,
                     booking: booking._id,
                     customer: booking.customer,
                     garage: booking.garage,
                     mechanic: booking.mechanic,
                     vehicle: booking.vehicle,
-                    serviceCharges: booking.service.price || 0,
-                    total: booking.service.price || 0
+                    status: "finalized",
+                    items: [{
+                        description: booking.service?.name || "Vehicle Service",
+                        category: "service",
+                        quantity: 1,
+                        unitPrice: servicePrice,
+                        amount: servicePrice
+                    }],
+                    subtotal: servicePrice,
+                    taxableAmount: servicePrice,
+                    gstPercentage: 0,
+                    gstAmount: 0,
+                    totalAmount: servicePrice,
+                    serviceCharges: servicePrice,
+                    total: servicePrice,
+                    paymentStatus: "pending",
+                    finalizedAt: new Date(),
+                    finalizedBy: req.user._id
                 });
             }
         }
 
-        // Get the updated booking with populated fields
         const result = await Booking.findById(updatedBooking._id)
-            .populate("vehicle garage mechanic customer", "name email mobile brand model vehicleNumber address");
+            .populate("vehicle customer", "name email mobile brand model vehicleNumber address")
+            .populate("garage", "name address phone referenceCode")
+            .populate("mechanic", "name email mobile skills");
 
-        return res.json(result);
+        // Maintain response properties expected by tests
+        const resObj = result.toObject();
+        if (req.body.rejectionReason) {
+            resObj.rejectionReason = req.body.rejectionReason;
+        }
+
+        return res.json(resObj);
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error while updating booking" });
+        return res.status(500).json({ message: "Server error while updating booking: " + error.message });
     }
 };
 
 module.exports = {
     listBookings,
     createBooking,
+    assignMechanic,
+    updateAppointment,
     updateBooking
 };

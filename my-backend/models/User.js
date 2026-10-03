@@ -18,6 +18,19 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: "customer"
     },
+    skills: [{
+        type: String,
+        trim: true
+    }],
+    primaryGarage: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Garage"
+    },
+    membershipStatus: {
+        type: String,
+        enum: ["none", "pending", "active", "rejected"],
+        default: "none"
+    },
     password: {
         type: String,
         required: true
